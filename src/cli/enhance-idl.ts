@@ -5,9 +5,9 @@ import {
   isSolitaConfigShank,
   SolitaConfig,
 } from './types'
-import { strict as assert } from 'assert'
 
 import { promises as fs } from 'fs'
+import { adaptIdl } from '../transform-type'
 
 export async function enhanceIdl(
   config: SolitaConfig,
@@ -40,16 +40,7 @@ export async function enhanceIdl(
     )
   }
 
-  // Apply Idl hook if provided
-  let finalIdl = idl
-  if (config.idlHook != null) {
-    assert.equal(
-      typeof config.idlHook,
-      'function',
-      `idlHook needs to be a function of the type: (idl: Idl) => idl, but is of type ${typeof config.idlHook}`
-    )
-    finalIdl = config.idlHook(idl)
-  }
+  let finalIdl = adaptIdl(idl, config)
 
   await fs.writeFile(idlPath, JSON.stringify(finalIdl, null, 2))
   return finalIdl

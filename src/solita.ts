@@ -1,25 +1,29 @@
-import { PathLike, promises as fs } from 'fs'
+import { strict as assert } from 'assert'
+import { promises as fs, PathLike } from 'fs'
 import path from 'path'
+import { format, Options } from 'prettier'
+import { Paths } from './paths'
 import { renderAccount } from './render-account'
+import { renderAccountProviders } from './render-account-providers'
 import { renderErrors } from './render-errors'
 import { renderInstruction } from './render-instruction'
 import { determineTypeIsFixable, renderType } from './render-type'
-import { strict as assert } from 'assert'
+import { CustomSerializers } from './serializers'
 import {
-  TypeAliases,
   Idl,
+  IdlFieldsType,
   IdlType,
+  IdlTypeDataEnum,
+  IdlTypeEnum,
+  isAnchorIdl,
   isIdlFieldsType,
   isIdlTypeDefined,
   isIdlTypeEnum,
   isShankIdl,
-  SOLANA_WEB3_PACKAGE,
   PrimitiveTypeKey,
   Serializers,
-  IdlTypeDataEnum,
-  IdlTypeEnum,
-  IdlFieldsType,
-  isAnchorIdl,
+  SOLANA_WEB3_PACKAGE,
+  TypeAliases,
 } from './types'
 import {
   logDebug,
@@ -29,11 +33,6 @@ import {
   prepareTargetDir,
   prependGeneratedWarning,
 } from './utils'
-import { format, Options } from 'prettier'
-import { Paths } from './paths'
-import { CustomSerializers } from './serializers'
-import { renderAccountProviders } from './render-account-providers'
-import { adaptIdl } from './transform-type'
 
 export * from './types'
 
@@ -156,7 +155,6 @@ export class Solita {
     // -----------------
     const types: Record<string, string> = {}
     logDebug('Rendering %d types', this.idl.types?.length ?? 0)
-    adaptIdl(this.idl)
 
     if (this.idl.types != null) {
       for (let ty of this.idl.types) {
