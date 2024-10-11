@@ -1,5 +1,11 @@
 import { RustbinConfig } from '@metaplex-foundation/rustbin'
-import { Idl, IdlType, Serializers, TypeAliases } from '../types'
+import {
+  Idl,
+  IdlDefinedTypeDefinition,
+  IdlType,
+  Serializers,
+  TypeAliases,
+} from '../types'
 export { RustbinConfig }
 
 export type SolitaConfigBase = {
@@ -10,10 +16,8 @@ export type SolitaConfigBase = {
   programDir: string
   idlHook?: (idl: Idl) => Idl
   idlHookPostAdaption?: (idl: Idl) => Idl
-  idlTypeFallback?: (
-    strType: string,
-    resolveType: (strType: string) => IdlType
-  ) => IdlType | null
+  customTypeMappers?: CustomTypeMapper[]
+  idlTypeFallback?: IdlTypeFallback
   externalImports?: Record<string, string>
   rustbin?: RustbinConfig
   typeAliases?: TypeAliases
@@ -21,6 +25,17 @@ export type SolitaConfigBase = {
   removeExistingIdl?: boolean
   binaryArgs?: string
 }
+
+export type CustomTypeMapper = (
+  strType: string,
+  resolveType: (strType: string) => IdlType,
+  registerGeneratedType: (def: IdlDefinedTypeDefinition) => void
+) => IdlType | null
+
+export type IdlTypeFallback = (
+  strType: string,
+  resolveType: (strType: string) => IdlType
+) => IdlType | null
 
 export type SolitaConfigAnchor = SolitaConfigBase & {
   idlGenerator: 'anchor'

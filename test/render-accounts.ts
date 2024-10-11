@@ -45,6 +45,7 @@ async function checkRenderedAccount(
     new Map(),
     new Map(),
     new Map(),
+    new Map(),
     serializers,
     FORCE_FIXABLE_NEVER,
     PROGRAM_ID,

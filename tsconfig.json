@@ -23,6 +23,6 @@
     "skipLibCheck": true,
     "resolveJsonModule": true
   },
-  "include": ["src"],
+  "include": ["src", "test"],
   "exclude": ["test/anchor-examples", "test/integration/output"]
 }

@@ -1,5 +1,5 @@
 import assert from 'assert'
-import { SolitaConfig } from './cli/types'
+import { CustomTypeMapper, SolitaConfig } from './cli/types'
 import {
   Idl,
   IdlAccount,
@@ -19,7 +19,7 @@ import {
   isShankIdl,
 } from './types'
 
-const mapRx = /^(Hash|BTree)?Map<([^,\s]+)\s*,\s*([^>\s(]+)\!!s?>/
+const mapRx = /^(Hash|BTree|Vec)?Map<([^,\s]+)\s*,\s*([^>\s(]+)\!!s?>/
 const premitiveTypes = {
   bool: 'bool',
   pubkey: 'publicKey',
@@ -36,6 +36,79 @@ let idlTypeFallback = (
   strType: string,
   resolveType: (strType: string) => IdlType
 ): IdlType | null => null
+
+const mapMapper: CustomTypeMapper = (strType, resolveType) => {
+  const match = strType.match(mapRx)
+  if (match) {
+    const [_, mapTy, inner1, inner2] = match
+
+    const innerTy1 = resolveType(inner1)
+    const innerTy2 = resolveType(inner2)
+
+    if (mapTy === 'BTree') {
+      const map: IdlTypeBTreeMap = { bTreeMap: [innerTy1, innerTy2] }
+      return map
+    } else if (mapTy === 'Vec') {
+      return {
+        vec: resolveType(strType.slice(4, -1)),
+      }
+    } else {
+      const map: IdlTypeHashMap = { hashMap: [innerTy1, innerTy2] }
+      return map
+    }
+  }
+  return null
+}
+
+const tuppleMapper: CustomTypeMapper = (strType, resolveType) => {
+  if (strType.startsWith('(') && strType.endsWith(')')) {
+    const items = strType
+      .slice(1, -1)
+      .split(/\s*,\s*/)
+      .map(resolveType)
+    return {
+      tuple: items,
+    }
+  }
+  return null
+}
+
+const vecMapMapper: CustomTypeMapper = (strType, resolveType) => {
+  if (strType.startsWith('VecMap<')) {
+    return {
+      vec: resolveType(`(${strType.slice(7, -1)})`),
+    }
+  }
+  return null
+}
+
+const optionMapper: CustomTypeMapper = (strType, resolveType) => {
+  if (strType.startsWith('Option<')) {
+    return {
+      option: resolveType(strType.slice(7, -1)),
+    }
+  }
+  return null
+}
+
+const nodeMapper: CustomTypeMapper = (strType, resolveType) => {
+  if (strType === 'Node') {
+    return {
+      array: ['u8', 32],
+    }
+  }
+  return null
+}
+
+const customTypeMappers: CustomTypeMapper[] = [
+  mapMapper,
+  vecMapMapper,
+  tuppleMapper,
+  optionMapper,
+  nodeMapper,
+]
+
+const generatedTypes = new Map<string, IdlDefinedTypeDefinition>()
 
 /**
  * When anchor doesn't understand a type it just assumes it is a user defined one.
@@ -61,12 +134,28 @@ export function adaptIdl(idl: Idl, config: SolitaConfig) {
     idl = config.idlHook(idl)
   }
 
+  if (config.customTypeMappers != null) {
+    if (!Array.isArray(config.customTypeMappers))
+      throw new Error(
+        `customTypeMappers needs to be array of the type: (strType: string, resolveType: (strType: string) => IdlType, registerGeneratedType: (def: IdlDefinedTypeDefinition) => void) => IdlType | null, but is of type ${typeof config.customTypeMappers}`
+      )
+
+    config.customTypeMappers.forEach((mapper) => {
+      assert.equal(
+        typeof mapper,
+        'function',
+        `customTypeMappers items needs to be of the type: (strType: string, resolveType: (strType: string) => IdlType, registerGeneratedType: (def: IdlDefinedTypeDefinition) => void) => IdlType | null, but one of them is of type ${typeof mapper}`
+      )
+      customTypeMappers.push(mapper)
+    })
+  }
+
   // Set Idl type fallback if provided
   if (config.idlTypeFallback != null) {
     assert.equal(
       typeof config.idlTypeFallback,
       'function',
-      `idlTypeFallback needs to be a function of the type: (idl: Idl) => idl, but is of type ${typeof config.idlTypeFallback}`
+      `idlTypeFallback needs to be a function of the type: (strType: string, resolveType: (strType: string) => IdlType) => IdlType | null, but is of type ${typeof config.idlTypeFallback}`
     )
     idlTypeFallback = config.idlTypeFallback
   }
@@ -89,6 +178,11 @@ export function adaptIdl(idl: Idl, config: SolitaConfig) {
     for (let i = 0; i < ix.args.length; i++) {
       ix.args[i].type = transformType(ix.args[i].type)
     }
+  }
+
+  if (generatedTypes.size > 0) {
+    if (idl.types == null) idl.types = []
+    idl.types.push(...Array.from(generatedTypes.values()))
   }
 
   if (config.idlHookPostAdaption != null) {
@@ -144,67 +238,25 @@ function transformType(ty: IdlType) {
   }
 
   if (isIdlTypeDefined(ty)) {
-    //     logWarn(
-    //       `Discovered an incorrectly defined map '${ty.defined}' as part of the IDL.
-    // Solita will attempt to fix this type, but you should inform the authors of the tool that generated the IDL about this issue`
-    //     )
-
-    const match = ty.defined.match(mapRx)
-    if (match) {
-      const [_, mapTy, inner1, inner2] = match
-
-      const innerTy1 = resolveType(inner1)
-      const innerTy2 = resolveType(inner2)
-
-      if (mapTy === 'BTree') {
-        const map: IdlTypeBTreeMap = { bTreeMap: [innerTy1, innerTy2] }
-        return map
-      } else {
-        const map: IdlTypeHashMap = { hashMap: [innerTy1, innerTy2] }
-        return map
-      }
-    }
-
     return resolveType(ty.defined)
   }
   return ty
 }
 
 const resolveType = (strType: string): IdlType => {
-  let type
-
   if (strType.toLocaleLowerCase() in premitiveTypes) {
     // @ts-ignore
-    type = premitiveTypes[strType.toLocaleLowerCase()]
-  } else if (strType.startsWith('Vec<')) {
-    type = {
-      vec: resolveType(strType.slice(4, -1)),
-    }
-  } else if (strType.startsWith('(') && strType.endsWith(')')) {
-    const items = strType
-      .slice(1, -1)
-      .split(/\s*,\s*/)
-      .map(resolveType)
-    type = {
-      tuple: items,
-    }
-  } else if (strType.startsWith('VecMap<')) {
-    type = {
-      vec: resolveType(`(${strType.slice(7, -1)})`),
-    }
-  } else if (strType.startsWith('Option<')) {
-    type = {
-      option: resolveType(strType.slice(7, -1)),
-    }
-  } else if (strType === 'Node') {
-    type = {
-      array: ['u8', 32],
-    }
-  } else {
-    type = idlTypeFallback(strType, resolveType) || { defined: strType }
+    return premitiveTypes[strType.toLocaleLowerCase()]
   }
 
-  return type
+  for (let mapper of customTypeMappers) {
+    const type = mapper(strType, resolveType, (def) =>
+      generatedTypes.set(def.name, def)
+    )
+    if (type) return type
+  }
+
+  return idlTypeFallback(strType, resolveType) || { defined: strType }
 }
 
 // -----------------

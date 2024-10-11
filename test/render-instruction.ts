@@ -46,6 +46,7 @@ async function checkRenderedIx(
     new Map(),
     new Map(),
     new Map(),
+    new Map(),
     FORCE_FIXABLE_NEVER,
     opts.anchorRemainingAccounts ?? false
   )

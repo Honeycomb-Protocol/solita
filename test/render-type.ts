@@ -36,6 +36,7 @@ async function checkRenderedType(
       ['Creator', '/module/of/creator.ts'],
     ]),
     new Map(),
+    new Map(),
     FORCE_FIXABLE_NEVER
   )
   if (opts.logCode) {
