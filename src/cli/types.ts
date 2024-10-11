@@ -14,6 +14,7 @@ export type SolitaConfigBase = {
     strType: string,
     resolveType: (strType: string) => IdlType
   ) => IdlType | null
+  externalImports?: Record<string, string>
   rustbin?: RustbinConfig
   typeAliases?: TypeAliases
   serializers?: Serializers

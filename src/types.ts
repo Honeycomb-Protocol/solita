@@ -13,8 +13,8 @@ import {
   BeetSolanaExports,
   BeetSolanaTypeMapKey,
 } from '@metaplex-foundation/beet-solana'
-import { SerdePackage } from './serdes'
 import { strict as assert } from 'assert'
+import { SerdePackage } from './serdes'
 
 // -----------------
 // Config
@@ -151,6 +151,9 @@ export type IdlDefinedTypeDefinition = {
   type: IdlFieldsType | IdlTypeEnum | IdlTypeDataEnum
 }
 
+// Mapped => typeName: package
+export type IdlExternallyDefinedTypes = Record<string, string>
+
 // -----------------
 // Instruction
 // -----------------
@@ -198,6 +201,7 @@ export type Idl = {
   accounts?: IdlAccount[]
   errors?: IdlError[]
   types?: IdlDefinedTypeDefinition[]
+  externalTypes?: IdlExternallyDefinedTypes
   metadata: {
     address: string
     origin?: IdlOrigin

@@ -1,4 +1,23 @@
 import {
+  BEET_PACKAGE,
+  supportedTypeMap as beetSupportedTypeMap,
+  BeetTypeMapKey,
+  SupportedTypeDefinition,
+} from '@metaplex-foundation/beet'
+import {
+  supportedTypeMap as beetSolanaSupportedTypeMap,
+  BeetSolanaTypeMapKey,
+} from '@metaplex-foundation/beet-solana'
+import { strict as assert } from 'assert'
+import { PathLike } from 'fs'
+import path from 'path'
+import { beetVarNameFromTypeName } from './render-type'
+import {
+  assertKnownSerdePackage,
+  SerdePackage,
+  serdePackageExportName,
+} from './serdes'
+import {
   IdlEnumVariant,
   IdlField,
   IdlInstructionArg,
@@ -30,25 +49,6 @@ import {
   TypeMappedSerdeField,
 } from './types'
 import { getOrCreate, logDebug, withoutTsExtension } from './utils'
-import { strict as assert } from 'assert'
-import {
-  BeetTypeMapKey,
-  BEET_PACKAGE,
-  SupportedTypeDefinition,
-  supportedTypeMap as beetSupportedTypeMap,
-} from '@metaplex-foundation/beet'
-import {
-  BeetSolanaTypeMapKey,
-  supportedTypeMap as beetSolanaSupportedTypeMap,
-} from '@metaplex-foundation/beet-solana'
-import {
-  assertKnownSerdePackage,
-  SerdePackage,
-  serdePackageExportName,
-} from './serdes'
-import { beetVarNameFromTypeName } from './render-type'
-import path from 'path'
-import { PathLike } from 'fs'
 
 export function resolveSerdeAlias(ty: string) {
   switch (ty) {
@@ -73,6 +73,8 @@ export class TypeMapper {
     private readonly accountTypesPaths: Map<string, string> = new Map(),
     /** Custom types mapped { typeName: fullPath } */
     private readonly customTypesPaths: Map<string, string> = new Map(),
+    /** External types mapped { typeName: package } */
+    private readonly externalTypesPaths: Map<string, string> = new Map(),
     /** Aliases mapped { alias: actualType } */
     private readonly typeAliases: Map<string, PrimitiveTypeKey> = new Map(),
     private readonly forceFixable: ForceFixable = FORCE_FIXABLE_NEVER,
@@ -90,6 +92,7 @@ export class TypeMapper {
     return new TypeMapper(
       this.accountTypesPaths,
       this.customTypesPaths,
+      this.externalTypesPaths,
       this.typeAliases,
       this.forceFixable,
       this.primaryTypeMap
@@ -534,11 +537,16 @@ export class TypeMapper {
   private _importsForLocalPackages(fileDir: string) {
     const renderedImports: string[] = []
     for (const [originPath, imports] of this.localImportsByPath) {
-      let relPath = path.relative(fileDir, originPath)
-      if (!relPath.startsWith('.')) {
-        relPath = `./${relPath}`
+      let importPath = originPath
+
+      if (!importPath.startsWith('@')) {
+        let relPath = path.relative(fileDir, originPath)
+        if (!relPath.startsWith('.')) {
+          relPath = `./${relPath}`
+        }
+        importPath = withoutTsExtension(relPath)
       }
-      const importPath = withoutTsExtension(relPath)
+
       renderedImports.push(
         `import { ${Array.from(imports).join(', ')} }  from '${importPath}';`
       )
@@ -559,6 +567,7 @@ export class TypeMapper {
     return (
       this.accountTypesPaths.get(ty.defined) ??
       this.customTypesPaths.get(ty.defined) ??
+      this.externalTypesPaths.get(ty.defined) ??
       assert.fail(
         `Unknown type ${ty.defined} is neither found in types nor an Account`
       )

@@ -1,3 +1,11 @@
+import { strict as assert } from 'assert'
+import { PathLike } from 'fs'
+import {
+  renderDataEnumRecord,
+  renderTypeDataEnumBeet,
+} from './render-data-enum'
+import { renderScalarEnum } from './render-enums'
+import { renderTypeDataStruct, serdePackageExportName } from './serdes'
 import { ForceFixable, TypeMapper } from './type-mapper'
 import {
   BEET_PACKAGE,
@@ -7,14 +15,6 @@ import {
   isIdlTypeEnum,
   PrimitiveTypeKey,
 } from './types'
-import { strict as assert } from 'assert'
-import { renderTypeDataStruct, serdePackageExportName } from './serdes'
-import { renderScalarEnum } from './render-enums'
-import { PathLike } from 'fs'
-import {
-  renderDataEnumRecord,
-  renderTypeDataEnumBeet,
-} from './render-data-enum'
 
 export function beetVarNameFromTypeName(ty: string) {
   const camelTyName = ty.charAt(0).toLowerCase().concat(ty.slice(1))
@@ -164,9 +164,14 @@ export function determineTypeIsFixable(
   ty: IdlDefinedTypeDefinition,
   fullFileDir: PathLike,
   accountFilesByType: Map<string, string>,
-  customFilesByType: Map<string, string>
+  customFilesByType: Map<string, string>,
+  externalPackagessByType: Map<string, string>
 ) {
-  const typeMapper = new TypeMapper(accountFilesByType, customFilesByType)
+  const typeMapper = new TypeMapper(
+    accountFilesByType,
+    customFilesByType,
+    externalPackagessByType
+  )
   const renderer = new TypeRenderer(ty, fullFileDir, typeMapper)
   return renderer.determineIsFixable()
 }
@@ -176,12 +181,14 @@ export function renderType(
   fullFileDir: PathLike,
   accountFilesByType: Map<string, string>,
   customFilesByType: Map<string, string>,
+  externalPackagesByType: Map<string, string>,
   typeAliases: Map<string, PrimitiveTypeKey>,
   forceFixable: ForceFixable
 ) {
   const typeMapper = new TypeMapper(
     accountFilesByType,
     customFilesByType,
+    externalPackagesByType,
     typeAliases,
     forceFixable
   )

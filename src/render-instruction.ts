@@ -1,28 +1,28 @@
-import {
-  IdlInstruction,
-  IdlInstructionArg,
-  SOLANA_WEB3_EXPORT_NAME,
-  IdlInstructionAccount,
-  SOLANA_SPL_TOKEN_PACKAGE,
-  SOLANA_SPL_TOKEN_EXPORT_NAME,
-  TypeMappedSerdeField,
-  SOLANA_WEB3_PACKAGE,
-  isIdlInstructionAccountWithDesc,
-  PrimitiveTypeKey,
-  isAccountsCollection,
-} from './types'
-import { ForceFixable, TypeMapper } from './type-mapper'
-import { renderDataStruct } from './serdes'
+import { BEET_PACKAGE } from '@metaplex-foundation/beet'
+import { PathLike } from 'fs'
+import { InstructionDiscriminator } from './instruction-discriminator'
 import {
   isKnownPubkey,
   renderKnownPubkeyAccess,
   ResolvedKnownPubkey,
   resolveKnownPubkey,
 } from './known-pubkeys'
-import { BEET_PACKAGE } from '@metaplex-foundation/beet'
 import { renderScalarEnums } from './render-enums'
-import { InstructionDiscriminator } from './instruction-discriminator'
-import { PathLike } from 'fs'
+import { renderDataStruct } from './serdes'
+import { ForceFixable, TypeMapper } from './type-mapper'
+import {
+  IdlInstruction,
+  IdlInstructionAccount,
+  IdlInstructionArg,
+  isAccountsCollection,
+  isIdlInstructionAccountWithDesc,
+  PrimitiveTypeKey,
+  SOLANA_SPL_TOKEN_EXPORT_NAME,
+  SOLANA_SPL_TOKEN_PACKAGE,
+  SOLANA_WEB3_EXPORT_NAME,
+  SOLANA_WEB3_PACKAGE,
+  TypeMappedSerdeField,
+} from './types'
 
 type ProcessedAccountKey = IdlInstructionAccount & {
   knownPubkey?: ResolvedKnownPubkey
@@ -462,6 +462,7 @@ export function renderInstruction(
   programId: string,
   accountFilesByType: Map<string, string>,
   customFilesByType: Map<string, string>,
+  externalPackagesByType: Map<string, string>,
   typeAliases: Map<string, PrimitiveTypeKey>,
   forceFixable: ForceFixable,
   renderAnchorRemainingAccounts: boolean
@@ -469,6 +470,7 @@ export function renderInstruction(
   const typeMapper = new TypeMapper(
     accountFilesByType,
     customFilesByType,
+    externalPackagesByType,
     typeAliases,
     forceFixable
   )

@@ -1,9 +1,9 @@
+import { strict as assert } from 'assert'
 import { PathLike } from 'fs'
 import { renderScalarEnums } from './render-enums'
 import { renderDataStruct } from './serdes'
 import { CustomSerializers, SerializerSnippets } from './serializers'
 import { ForceFixable, TypeMapper } from './type-mapper'
-import { strict as assert } from 'assert'
 import {
   asIdlTypeArray,
   BEET_PACKAGE,
@@ -480,6 +480,7 @@ export function renderAccount(
   fullFileDir: PathLike,
   accountFilesByType: Map<string, string>,
   customFilesByType: Map<string, string>,
+  externalPackagesByType: Map<string, string>,
   typeAliases: Map<string, PrimitiveTypeKey>,
   serializers: CustomSerializers,
   forceFixable: ForceFixable,
@@ -490,6 +491,7 @@ export function renderAccount(
   const typeMapper = new TypeMapper(
     accountFilesByType,
     customFilesByType,
+    externalPackagesByType,
     typeAliases,
     forceFixable
   )

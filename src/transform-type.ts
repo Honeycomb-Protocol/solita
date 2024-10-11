@@ -18,7 +18,6 @@ import {
   isIdlTypeVec,
   isShankIdl,
 } from './types'
-import { logWarn } from './utils'
 
 const mapRx = /^(Hash|BTree)?Map<([^,\s]+)\s*,\s*([^>\s(]+)\!!s?>/
 const premitiveTypes = {
@@ -145,10 +144,10 @@ function transformType(ty: IdlType) {
   }
 
   if (isIdlTypeDefined(ty)) {
-    logWarn(
-      `Discovered an incorrectly defined map '${ty.defined}' as part of the IDL.
-Solita will attempt to fix this type, but you should inform the authors of the tool that generated the IDL about this issue`
-    )
+    //     logWarn(
+    //       `Discovered an incorrectly defined map '${ty.defined}' as part of the IDL.
+    // Solita will attempt to fix this type, but you should inform the authors of the tool that generated the IDL about this issue`
+    //     )
 
     const match = ty.defined.match(mapRx)
     if (match) {

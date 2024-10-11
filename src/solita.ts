@@ -117,6 +117,18 @@ export class Solita {
     )
   }
 
+  private externalPackagesByType() {
+    assert(this.paths != null, 'should have set paths')
+    return new Map(
+      this.idl.externalTypes
+        ? Object.entries(this.idl.externalTypes).map(([name, pkg]) => [
+            name,
+            pkg,
+          ])
+        : []
+    )
+  }
+
   private resolveFieldType = (
     typeName: string
   ): IdlFieldsType | IdlTypeEnum | IdlTypeDataEnum | null => {
@@ -138,6 +150,7 @@ export class Solita {
     const fixableTypes: Set<string> = new Set()
     const accountFiles = this.accountFilesByType()
     const customFiles = this.customFilesByType()
+    const externalPackages = this.externalPackagesByType()
 
     function forceFixable(ty: IdlType) {
       if (isIdlTypeDefined(ty) && fixableTypes.has(ty.defined)) {
@@ -164,7 +177,8 @@ export class Solita {
           ty,
           this.paths.typesDir,
           accountFiles,
-          customFiles
+          customFiles,
+          externalPackages
         )
 
         if (isFixable) {
@@ -187,6 +201,7 @@ export class Solita {
           this.paths!.typesDir,
           accountFiles,
           customFiles,
+          externalPackages,
           this.typeAliases,
           forceFixable
         )
@@ -225,6 +240,7 @@ export class Solita {
         programId,
         accountFiles,
         customFiles,
+        externalPackages,
         this.typeAliases,
         forceFixable,
         this.anchorRemainingAccounts
@@ -255,6 +271,7 @@ export class Solita {
         this.paths.accountsDir,
         accountFiles,
         customFiles,
+        externalPackages,
         this.typeAliases,
         this.serializers,
         forceFixable,
