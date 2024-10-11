@@ -73,10 +73,10 @@ const tuppleMapper: CustomTypeMapper = (strType, resolveType) => {
   return null
 }
 
-const vecMapMapper: CustomTypeMapper = (strType, resolveType) => {
-  if (strType.startsWith('VecMap<')) {
+const vecMapper: CustomTypeMapper = (strType, resolveType) => {
+  if (strType.startsWith('Vec<')) {
     return {
-      vec: resolveType(`(${strType.slice(7, -1)})`),
+      vec: resolveType(strType.slice(4, -1)),
     }
   }
   return null
@@ -102,7 +102,7 @@ const nodeMapper: CustomTypeMapper = (strType, resolveType) => {
 
 const customTypeMappers: CustomTypeMapper[] = [
   mapMapper,
-  vecMapMapper,
+  vecMapper,
   tuppleMapper,
   optionMapper,
   nodeMapper,
