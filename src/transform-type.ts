@@ -19,7 +19,6 @@ import {
   isShankIdl,
 } from './types'
 
-const mapRx = /^(Hash|BTree|Vec)?Map<([^,\s]+)\s*,\s*([^>\s(]+)\!!s?>/
 const premitiveTypes = {
   bool: 'bool',
   pubkey: 'publicKey',
@@ -37,20 +36,48 @@ let idlTypeFallback = (
   resolveType: (strType: string) => IdlType
 ): IdlType | null => null
 
+const parseGenericType = (input: string) => {
+  let result: { type: string; parameters: string[] } = {
+    type: '',
+    parameters: [],
+  }
+  let depth = 0,
+    param = '',
+    typeName = ''
+
+  for (let char of input) {
+    if (char === '<') {
+      if (depth++ === 0) result.type = typeName.trim()
+      else param += char
+    } else if (char === '>') {
+      if (--depth === 0) {
+        result.parameters.push(param.trim())
+        param = ''
+      } else param += char
+    } else if (char === ',' && depth === 1) {
+      result.parameters.push(param.trim())
+      param = ''
+    } else if (depth > 0) param += char
+    else typeName += char
+  }
+
+  return result
+}
+
 const mapMapper: CustomTypeMapper = (strType, resolveType) => {
-  const match = strType.match(mapRx)
-  if (match) {
-    const [_, mapTy, inner1, inner2] = match
+  const parsed = parseGenericType(strType)
+  if (parsed && parsed.type.endsWith('Map')) {
+    const [inner1, inner2] = parsed.parameters
 
     const innerTy1 = resolveType(inner1)
     const innerTy2 = resolveType(inner2)
 
-    if (mapTy === 'BTree') {
+    if (parsed.type === 'BTreeMap') {
       const map: IdlTypeBTreeMap = { bTreeMap: [innerTy1, innerTy2] }
       return map
-    } else if (mapTy === 'Vec') {
+    } else if (parsed.type === 'VecMap') {
       return {
-        vec: resolveType(strType.slice(4, -1)),
+        vec: resolveType('(' + strType.slice(7, -1) + ')'), // Adjust slicing based on "VecMap"
       }
     } else {
       const map: IdlTypeHashMap = { hashMap: [innerTy1, innerTy2] }
