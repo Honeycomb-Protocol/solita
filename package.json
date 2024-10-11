@@ -1,6 +1,6 @@
 {
-  "name": "@metaplex-foundation/solita",
-  "version": "0.20.1",
+  "name": "@honeycomb-protocol/solita",
+  "version": "0.0.1",
   "description": "Generates SDK API from solana contract IDL.",
   "main": "dist/src/solita.js",
   "types": "dist/src/solita.d.ts",
@@ -27,8 +27,8 @@
     "doc:update": "./sh/update-docs",
     "doctoc": "doctoc README.md"
   },
-  "repository": "git@github.com:metaplex-foundation/solita.git",
-  "author": "Thorsten Lorenz <thlorenz@gmx.de>",
+  "repository": "git@github.com:Honeycomb-Protocol/solita.git",
+  "author": "Thorsten Lorenz <thlorenz@gmx.de>, Sultan Nadeem <sultanndilaram@gmail.com>",
   "license": "Apache-2.0",
   "private": false,
   "directories": {
