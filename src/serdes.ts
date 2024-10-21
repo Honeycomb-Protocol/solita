@@ -8,7 +8,7 @@ import {
   SOLANA_WEB3_PACKAGE,
   TypeMappedSerdeField,
 } from './types'
-
+import { genericsToTokens } from './utils'
 export type SerdePackage =
   | typeof BEET_PACKAGE
   | typeof BEET_SOLANA_PACKAGE
@@ -178,17 +178,19 @@ export function renderDataStruct({
 /**
  * Renders DataStruct for user defined types
  */
-export function renderTypeDataStruct({
-  fields,
-  beetVarName,
-  typeName,
-  isFixable,
-}: {
+export function renderTypeDataStruct(args: {
   fields: TypeMappedSerdeField[]
+  generics?: string[]
   beetVarName: string
   typeName: string
   isFixable: boolean
 }) {
+  const { fields, beetVarName, isFixable, generics = [] } = args
+  const { typeNameWithGenerics: typeName, renderBeetExport } = genericsToTokens(
+    args.typeName,
+    generics
+  )
+
   assert(
     fields.length > 0,
     `Rendering struct for ${typeName} should have at least 1 field`
@@ -206,7 +208,9 @@ export function renderTypeDataStruct({
   // -----------------
   // Beet Args Struct (Instruction)
   // -----------------
-  return `const ${beetVarName} = new ${BEET_EXPORT_NAME}.${beetArgsStructType}<${typeName}>(
+  return `${renderBeetExport(
+    beetVarName
+  )}new ${BEET_EXPORT_NAME}.${beetArgsStructType}<${typeName}>(
   [
     ${fieldDecls}
   ],

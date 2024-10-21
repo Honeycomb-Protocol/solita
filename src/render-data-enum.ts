@@ -1,4 +1,5 @@
 import camelcase from 'camelcase'
+import { genericsToTokens } from './utils'
 import { TypeMapper } from './type-mapper'
 import {
   BEET_EXPORT_NAME,
@@ -19,10 +20,14 @@ export function renderTypeDataEnumBeet(args: {
   dataEnum: IdlTypeDataEnum
   beetVarName: string
   typeName: string
+  generics?: string[]
 }) {
-  const { typeMapper, dataEnum, beetVarName, typeName } = args
-  const enumRecordName = `${typeName}Record`
-
+  const { typeMapper, dataEnum, beetVarName, generics = [] } = args
+  const {
+    enumRecordName,
+    typeNameWithGenerics: typeName,
+    renderBeetExport,
+  } = genericsToTokens(args.typeName, generics)
   const renderedVariants = dataEnum.variants.map((variant) => {
     const tm = typeMapper.clone()
     const beet = renderVariant(tm, enumRecordName, variant)
@@ -39,7 +44,9 @@ export function renderTypeDataEnumBeet(args: {
   const beetType = 'FixableBeet'
   typeMapper.usedFixableSerde = true
 
-  return `export const ${beetVarName} = ${BEET_EXPORT_NAME}.dataEnum<${enumRecordName}>([
+  return `${renderBeetExport(
+    beetVarName
+  )}${BEET_EXPORT_NAME}.dataEnum<${enumRecordName}>([
   ${renderedBeets} 
 ]) as ${BEET_EXPORT_NAME}.${beetType}<${typeName}, ${typeName}>
 `
@@ -103,8 +110,11 @@ function renderVariant(
 export function renderDataEnumRecord(
   typeMapper: TypeMapper,
   typeName: string,
-  variants: IdlDataEnumVariant[]
+  variants: IdlDataEnumVariant[],
+  generics: string[] = []
 ) {
+  const { typeNameWithGenerics, enumRecordName, genericsDefaults } =
+    genericsToTokens(typeName, generics)
   const renderedVariants = variants.map((variant) => {
     let fields
     if (isDataEnumVariantWithNamedFields(variant)) {
@@ -127,11 +137,10 @@ export function renderDataEnumRecord(
 
   const renderedGuards = variants.map((variant) => {
     const v = variant.name
-    return `export const is${typeName}${v} = (
-  x: ${typeName}
-): x is ${typeName} & { __kind: '${v}' } => x.__kind === '${v}'`
+    return `export const is${typeName}${v} = ${genericsDefaults}(
+  x: ${typeNameWithGenerics}
+): x is ${typeNameWithGenerics} & { __kind: '${v}' } => x.__kind === '${v}'`
   })
-
   return `
 /**
  * This type is used to derive the {@link ${typeName}} type as well as the de/serializer.
@@ -142,7 +151,7 @@ export function renderDataEnumRecord(
  * @category generated
  * @private
  */
-export type ${typeName}Record = {
+export type ${enumRecordName} = {
   ${renderedVariants.join(',\n  ')}    
 }
 
@@ -157,7 +166,7 @@ export type ${typeName}Record = {
  * @category enums
  * @category generated
  */
-export type ${typeName} = beet.DataEnumKeyAsKind<${typeName}Record>
+export type ${typeNameWithGenerics} = beet.DataEnumKeyAsKind<${enumRecordName}>
 
 ${renderedGuards.join('\n')}    
 `.trim()

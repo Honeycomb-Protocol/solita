@@ -18,7 +18,9 @@ import {
   isAnchorIdl,
   isIdlFieldsType,
   isIdlTypeDefined,
+  isIdlTypeDefinedWithTypeArgs,
   isIdlTypeEnum,
+  isIdlTypeGeneric,
   isShankIdl,
   PrimitiveTypeKey,
   Serializers,
@@ -154,6 +156,15 @@ export class Solita {
 
     function forceFixable(ty: IdlType) {
       if (isIdlTypeDefined(ty) && fixableTypes.has(ty.defined)) {
+        return true
+      }
+      if (
+        isIdlTypeDefinedWithTypeArgs(ty) &&
+        fixableTypes.has(ty.definedWithTypeArgs.name)
+      ) {
+        return true
+      }
+      if (isIdlTypeGeneric(ty)) {
         return true
       }
       return false

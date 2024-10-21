@@ -26,6 +26,7 @@ import {
   IdlTypeBTreeMap,
   IdlTypeBTreeSet,
   IdlTypeDefined,
+  IdlTypeDefinedWithTypeArgs,
   IdlTypeEnum,
   IdlTypeHashMap,
   IdlTypeHashSet,
@@ -36,6 +37,8 @@ import {
   isIdlTypeBTreeMap,
   isIdlTypeBTreeSet,
   isIdlTypeDefined,
+  isIdlTypeGeneric,
+  isIdlTypeDefinedWithTypeArgs,
   isIdlTypeEnum,
   isIdlTypeHashMap,
   isIdlTypeHashSet,
@@ -221,8 +224,16 @@ export class TypeMapper {
     return `Set<${innerType}>`
   }
 
+  private mapDefinedTypeWithTypeArgs(ty: IdlTypeDefinedWithTypeArgs) {
+    const fullFileDir = this.definedTypesImport(ty.definedWithTypeArgs.name)
+    const imports = getOrCreate(this.localImportsByPath, fullFileDir, new Set())
+    imports.add(ty.definedWithTypeArgs.name)
+    return `${ty.definedWithTypeArgs.name}<${ty.definedWithTypeArgs.args
+      .map((t) => this.map(t.type))
+      .join(', ')}>`
+  }
   private mapDefinedType(ty: IdlTypeDefined) {
-    const fullFileDir = this.definedTypesImport(ty)
+    const fullFileDir = this.definedTypesImport(ty.defined)
     const imports = getOrCreate(this.localImportsByPath, fullFileDir, new Set())
     imports.add(ty.defined)
     return ty.defined
@@ -256,11 +267,17 @@ export class TypeMapper {
     if (isIdlTypeArray(ty)) {
       return this.mapArrayType(ty, name)
     }
+    if (isIdlTypeGeneric(ty)) {
+      return ty.generic
+    }
     if (isIdlTypeDefined(ty)) {
       const alias = this.typeAliases.get(ty.defined)
       return alias == null
         ? this.mapDefinedType(ty)
         : this.mapPrimitiveType(alias, name)
+    }
+    if (isIdlTypeDefinedWithTypeArgs(ty)) {
+      return this.mapDefinedTypeWithTypeArgs(ty)
     }
     if (isIdlTypeEnum(ty)) {
       return this.mapEnumType(ty, name)
@@ -357,11 +374,21 @@ export class TypeMapper {
   }
 
   private mapDefinedSerde(ty: IdlTypeDefined) {
-    const fullFileDir = this.definedTypesImport(ty)
+    const fullFileDir = this.definedTypesImport(ty.defined)
     const imports = getOrCreate(this.localImportsByPath, fullFileDir, new Set())
     const varName = beetVarNameFromTypeName(ty.defined)
     imports.add(varName)
     return varName
+  }
+  private mapDefinedWithTypeArgsSerde(ty: IdlTypeDefinedWithTypeArgs) {
+    const fullFileDir = this.definedTypesImport(ty.definedWithTypeArgs.name)
+    const imports = getOrCreate(this.localImportsByPath, fullFileDir, new Set())
+    const varName = beetVarNameFromTypeName(ty.definedWithTypeArgs.name)
+    const factoryName = `${varName}Factory`
+    const args = ty.definedWithTypeArgs.args.map((a) => this.mapSerde(a.type))
+    const argsTypes = ty.definedWithTypeArgs.args.map((a) => this.map(a.type))
+    imports.add(factoryName)
+    return `${factoryName}<${argsTypes.join(', ')}>(${args.join(', ')})`
   }
 
   private mapEnumSerde(ty: IdlTypeEnum, name: string) {
@@ -468,11 +495,20 @@ export class TypeMapper {
     if (isIdlTypeEnum(ty)) {
       return this.mapEnumSerde(ty, name)
     }
+
+    if (isIdlTypeGeneric(ty)) {
+      return ty.generic
+    }
+
     if (isIdlTypeDefined(ty)) {
       const alias = this.typeAliases.get(ty.defined)
       return alias == null
         ? this.mapDefinedSerde(ty)
         : this.mapPrimitiveSerde(alias, name)
+    }
+
+    if (isIdlTypeDefinedWithTypeArgs(ty)) {
+      return this.mapDefinedWithTypeArgsSerde(ty)
     }
 
     if (isIdlTypeTuple(ty)) {
@@ -563,14 +599,12 @@ export class TypeMapper {
       `Types to ${context} need to be supported by Beet, ${serde} is not`
     )
   }
-  private definedTypesImport(ty: IdlTypeDefined) {
+  private definedTypesImport(ty: string) {
     return (
-      this.accountTypesPaths.get(ty.defined) ??
-      this.customTypesPaths.get(ty.defined) ??
-      this.externalTypesPaths.get(ty.defined) ??
-      assert.fail(
-        `Unknown type ${ty.defined} is neither found in types nor an Account`
-      )
+      this.accountTypesPaths.get(ty) ??
+      this.customTypesPaths.get(ty) ??
+      this.externalTypesPaths.get(ty) ??
+      assert.fail(`Unknown type ${ty} is neither found in types nor an Account`)
     )
   }
 

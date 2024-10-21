@@ -49,7 +49,9 @@ export type IdlInstructionAccount = {
 export type IdlType =
   | BeetTypeMapKey
   | 'publicKey'
+  | IdlTypeGeneric
   | IdlTypeDefined
+  | IdlTypeDefinedWithTypeArgs
   | IdlTypeOption
   | IdlTypeVec
   | IdlTypeArray
@@ -60,8 +62,21 @@ export type IdlType =
   | IdlTypeSet
 
 // User defined type.
+export type IdlTypeDefinedWithTypeArgs = {
+  definedWithTypeArgs: {
+    name: 'DataOrHash'
+    args: {
+      type: IdlType
+    }[]
+  }
+}
+
 export type IdlTypeDefined = {
   defined: string
+}
+
+export type IdlTypeGeneric = {
+  generic: string
 }
 
 export type IdlTypeOption = {
@@ -148,6 +163,7 @@ export type IdlFieldsType = {
 
 export type IdlDefinedTypeDefinition = {
   name: string
+  generics?: string[]
   type: IdlFieldsType | IdlTypeEnum | IdlTypeDataEnum
 }
 
@@ -274,8 +290,17 @@ export function asIdlTypeArray(ty: IdlType): IdlTypeArray {
   return ty
 }
 
+export function isIdlTypeGeneric(ty: IdlType): ty is IdlTypeGeneric {
+  return (ty as IdlTypeGeneric).generic != null
+}
 export function isIdlTypeDefined(ty: IdlType): ty is IdlTypeDefined {
   return (ty as IdlTypeDefined).defined != null
+}
+
+export function isIdlTypeDefinedWithTypeArgs(
+  ty: IdlType
+): ty is IdlTypeDefinedWithTypeArgs {
+  return (ty as IdlTypeDefinedWithTypeArgs).definedWithTypeArgs != null
 }
 
 export function isIdlTypeEnum(

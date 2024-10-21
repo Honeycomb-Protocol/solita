@@ -165,3 +165,25 @@ export function getOrCreate<K, V>(map: Map<K, V>, key: K, initial: V): V {
   map.set(key, initial)
   return initial
 }
+
+export function genericsToTokens(typeName: string, _generics: string[]) {
+  const generics = _generics.length ? `<${_generics.join(', ')}>` : ''
+  const genericsDefaults = _generics.length
+    ? `<${_generics.map((a) => `${a} = any`).join(', ')}>`
+    : ''
+  const enumRecordName = `${typeName}Record${generics}`
+  const typeNameWithGenerics = `${typeName}${generics}`
+  return {
+    typeNameWithGenerics,
+    enumRecordName,
+    genericsDefaults,
+    generics,
+    renderBeetExport: (beetVarName: string) =>
+      'export const ' +
+      (generics.length
+        ? `${beetVarName}Factory = ${generics}(
+  ${_generics.map((a) => `${a}: beet.FixableBeet<${a}>`).join(',\n  ')}
+) =>`
+        : `${beetVarName} = `),
+  }
+}

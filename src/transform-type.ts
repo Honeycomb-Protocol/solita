@@ -14,6 +14,7 @@ import {
   isFieldsType,
   isIdlTypeDataEnum,
   isIdlTypeDefined,
+  // isIdlTypeDefinedWithTypeArgs,
   isIdlTypeOption,
   isIdlTypeVec,
   isShankIdl,
@@ -267,6 +268,14 @@ function transformType(ty: IdlType) {
   if (isIdlTypeDefined(ty)) {
     return resolveType(ty.defined)
   }
+  // if (
+  //   isIdlTypeDefinedWithTypeArgs(ty) &&
+  //   ['VecMap', 'HashMap', 'BTreeMap', 'Map'].includes(
+  //     ty.definedWithTypeArgs.name
+  //   )
+  // ) {
+  //   return resolveType(ty.definedWithTypeArgs.name)
+  // }
   return ty
 }
 
@@ -280,6 +289,7 @@ const resolveType = (strType: string): IdlType => {
     const type = mapper(strType, resolveType, (def) =>
       generatedTypes.set(def.name, def)
     )
+    // console.log('type', type, strType)
     if (type) return type
   }
 

@@ -15,6 +15,7 @@ import {
   isIdlTypeEnum,
   PrimitiveTypeKey,
 } from './types'
+import { genericsToTokens } from './utils'
 
 export function beetVarNameFromTypeName(ty: string) {
   const camelTyName = ty.charAt(0).toLowerCase().concat(ty.slice(1))
@@ -52,7 +53,8 @@ class TypeRenderer {
       return renderDataEnumRecord(
         this.typeMapper,
         this.ty.name,
-        this.ty.type.variants
+        this.ty.type.variants,
+        this.ty.generics
       )
     }
     if (isIdlTypeEnum(this.ty.type)) {
@@ -63,11 +65,16 @@ class TypeRenderer {
       )
     }
     if (this.ty.type.fields.length === 0) return ''
+    const { typeNameWithGenerics } = genericsToTokens(
+      this.upperCamelTyName,
+      this.ty.generics ?? []
+    )
+
     const fields = this.ty.type.fields
       .map((field) => this.renderTypeField(field))
       .join(',\n  ')
 
-    const code = `export type ${this.upperCamelTyName} = {
+    const code = `export type ${typeNameWithGenerics} = {
   ${fields}
 }`
     return code
@@ -92,6 +99,7 @@ class TypeRenderer {
       return renderTypeDataEnumBeet({
         typeMapper: this.typeMapper,
         dataEnum: this.ty.type,
+        generics: this.ty.generics,
         beetVarName: this.beetArgName,
         typeName: this.upperCamelTyName,
       })
@@ -111,6 +119,7 @@ class TypeRenderer {
     const rendered = renderTypeDataStruct({
       fields: mappedFields,
       beetVarName: this.beetArgName,
+      generics: this.ty.generics,
       typeName: this.upperCamelTyName,
       isFixable: this.typeMapper.usedFixableSerde,
     })
