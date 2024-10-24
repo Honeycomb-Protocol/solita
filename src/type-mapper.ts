@@ -547,10 +547,14 @@ export class TypeMapper {
   // -----------------
   // Imports Generator
   // -----------------
-  importsUsed(fileDir: PathLike, forcePackages?: Set<SerdePackage>) {
+  importsUsed(
+    fileDir: PathLike,
+    forcePackages?: Set<SerdePackage>,
+    exlude: string[] = []
+  ) {
     return [
       ...this._importsForSerdePackages(forcePackages),
-      ...this._importsForLocalPackages(fileDir.toString()),
+      ...this._importsForLocalPackages(fileDir.toString(), exlude),
     ]
   }
 
@@ -570,9 +574,10 @@ export class TypeMapper {
     return imports
   }
 
-  private _importsForLocalPackages(fileDir: string) {
+  private _importsForLocalPackages(fileDir: string, exlude: string[]) {
     const renderedImports: string[] = []
     for (const [originPath, imports] of this.localImportsByPath) {
+      if (exlude.some((ex) => originPath.includes(ex))) continue
       let importPath = originPath
 
       if (!importPath.startsWith('@')) {

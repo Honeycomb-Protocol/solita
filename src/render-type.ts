@@ -86,7 +86,8 @@ class TypeRenderer {
   private renderImports() {
     const imports = this.typeMapper.importsUsed(
       this.fullFileDir,
-      new Set([BEET_PACKAGE])
+      new Set([BEET_PACKAGE]),
+      [this.ty.name]
     )
     return imports.join('\n')
   }

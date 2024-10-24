@@ -44,11 +44,12 @@ export function renderTypeDataEnumBeet(args: {
   const beetType = 'FixableBeet'
   typeMapper.usedFixableSerde = true
 
-  return `${renderBeetExport(
-    beetVarName
-  )}${BEET_EXPORT_NAME}.dataEnum<${enumRecordName}>([
-  ${renderedBeets} 
-]) as ${BEET_EXPORT_NAME}.${beetType}<${typeName}, ${typeName}>
+  return `
+const variants: beet.DataEnumBeet<${enumRecordName}>[] = [];
+${renderBeetExport(
+  beetVarName
+)}${BEET_EXPORT_NAME}.dataEnum<${enumRecordName}>(variants) as ${BEET_EXPORT_NAME}.${beetType}<${typeName}, ${typeName}>
+variants.push(${renderedBeets})
 `
 }
 

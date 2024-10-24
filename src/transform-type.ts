@@ -30,6 +30,9 @@ const premitiveTypes = {
   u32: 'u32',
   u64: 'u64',
   u128: 'u128',
+  f64: {
+    array: ['u8', 8],
+  },
 }
 
 let idlTypeFallback = (
@@ -229,6 +232,7 @@ export function adaptIdl(idl: Idl, config: SolitaConfig) {
 // Types
 // -----------------
 function transformDefinition(def: IdlDefinedTypeDefinition) {
+  if (def.name == 'Number') debugger
   const ty = def.type
   if (isFieldsType(ty)) {
     for (const f of ty.fields) {
@@ -276,6 +280,13 @@ function transformType(ty: IdlType) {
   // ) {
   //   return resolveType(ty.definedWithTypeArgs.name)
   // }
+  if (typeof ty === 'string') {
+    let k = ty.toLocaleLowerCase()
+    if (k in premitiveTypes) {
+      // @ts-ignore
+      return premitiveTypes[k]
+    }
+  }
   return ty
 }
 
@@ -289,7 +300,6 @@ const resolveType = (strType: string): IdlType => {
     const type = mapper(strType, resolveType, (def) =>
       generatedTypes.set(def.name, def)
     )
-    // console.log('type', type, strType)
     if (type) return type
   }
 
