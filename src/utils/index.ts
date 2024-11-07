@@ -182,7 +182,7 @@ export function genericsToTokens(typeName: string, _generics: string[]) {
       'export const ' +
       (generics.length
         ? `${beetVarName}Factory = ${generics}(
-  ${_generics.map((a) => `${a}: beet.FixableBeet<${a}> | FixedSizeBeet<${a}>`).join(',\n  ')}
+  ${_generics.map((a) => `${a}: beet.FixableBeet<${a}> | beet.FixedSizeBeet<${a}>`).join(',\n  ')}
 ) =>`
         : `${beetVarName} = `),
   }
