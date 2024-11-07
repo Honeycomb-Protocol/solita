@@ -49,7 +49,9 @@ async function main() {
     )
   }
 
-  const removeIdl = solitaConfig.removeExistingIdl ?? true
+  const removeIdl = solitaConfig.skipIdlBuildIfExists
+    ? false
+    : solitaConfig.removeExistingIdl ?? true
   if (removeIdl) {
     const { idlDir, programName } = solitaConfig
     const idlFile = path.join(idlDir, `${programName}.json`)

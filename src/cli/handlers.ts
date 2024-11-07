@@ -18,6 +18,7 @@ import { logDebug, logError, logInfo } from '../utils'
 import { Options as PrettierOptions } from 'prettier'
 
 import { red } from 'ansi-colors'
+import { existsSync } from 'fs'
 
 const handlerErrorRx = /^Error\:/
 
@@ -88,8 +89,22 @@ async function handle(
   prettierConfig?: PrettierOptions,
   anchorRemainingAccounts?: boolean
 ) {
-  const { programName, idlDir, sdkDir } = config
-
+  const { programName, idlDir, sdkDir, skipIdlBuildIfExists } = config
+  const idlPath = path.join(idlDir, `${programName}.json`)
+  const skipIdl = skipIdlBuildIfExists && existsSync(idlPath)
+  if (skipIdl) {
+    logInfo(`IDL file already exists at ${idlPath}, skipping IDL generation.`)
+    const idl = await enhanceIdl(config, '', '')
+    await generateTypeScriptSDK(
+      idl,
+      sdkDir,
+      prettierConfig,
+      config.typeAliases,
+      config.serializers,
+      anchorRemainingAccounts
+    )
+    return { exitCode: 0 }
+  }
   const { fullPathToBinary, binVersion, libVersion }: RustbinMatchReturn =
     await rustbinMatch(rustbinConfig, confirmAutoMessageLog)
 
@@ -100,7 +115,7 @@ async function handle(
     )
   }
 
-  return new Promise<SolitaHandlerResult>((resolve, reject) => {
+  return new Promise<SolitaHandlerResult>(async (resolve, reject) => {
     const tool = path.basename(fullPathToBinary)
     const idlGenerator = spawn(fullPathToBinary, spawnArgs, spawnOpts)
       .on('error', (err) => {

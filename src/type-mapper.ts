@@ -82,7 +82,7 @@ export class TypeMapper {
     private readonly typeAliases: Map<string, PrimitiveTypeKey> = new Map(),
     private readonly forceFixable: ForceFixable = FORCE_FIXABLE_NEVER,
     private readonly primaryTypeMap: PrimaryTypeMap = TypeMapper.defaultPrimaryTypeMap
-  ) {}
+  ) { }
 
   clearUsages() {
     this.serdePackagesUsed.clear()
@@ -374,6 +374,7 @@ export class TypeMapper {
   }
 
   private mapDefinedSerde(ty: IdlTypeDefined) {
+    this.usedFixableSerde = true
     const fullFileDir = this.definedTypesImport(ty.defined)
     const imports = getOrCreate(this.localImportsByPath, fullFileDir, new Set())
     const varName = beetVarNameFromTypeName(ty.defined)
@@ -381,6 +382,7 @@ export class TypeMapper {
     return varName
   }
   private mapDefinedWithTypeArgsSerde(ty: IdlTypeDefinedWithTypeArgs) {
+    this.usedFixableSerde = true
     const fullFileDir = this.definedTypesImport(ty.definedWithTypeArgs.name)
     const imports = getOrCreate(this.localImportsByPath, fullFileDir, new Set())
     const varName = beetVarNameFromTypeName(ty.definedWithTypeArgs.name)
@@ -563,9 +565,9 @@ export class TypeMapper {
       forcePackages == null
         ? this.serdePackagesUsed
         : new Set([
-            ...Array.from(this.serdePackagesUsed),
-            ...Array.from(forcePackages),
-          ])
+          ...Array.from(this.serdePackagesUsed),
+          ...Array.from(forcePackages),
+        ])
     const imports = []
     for (const pack of packagesToInclude) {
       const exp = serdePackageExportName(pack)
@@ -577,7 +579,7 @@ export class TypeMapper {
   private _importsForLocalPackages(fileDir: string, exlude: string[]) {
     const renderedImports: string[] = []
     for (const [originPath, imports] of this.localImportsByPath) {
-      if (exlude.some((ex) => originPath.includes(ex))) continue
+      if (exlude.some((ex) => originPath.endsWith(`${ex}.ts`))) continue
       let importPath = originPath
 
       if (!importPath.startsWith('@')) {

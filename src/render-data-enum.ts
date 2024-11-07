@@ -43,7 +43,13 @@ export function renderTypeDataEnumBeet(args: {
   // exist, i.e. when they have a single variant
   const beetType = 'FixableBeet'
   typeMapper.usedFixableSerde = true
-
+  if (generics.length) {
+    return `
+${renderBeetExport(
+  beetVarName
+)}${BEET_EXPORT_NAME}.dataEnum<${enumRecordName}>([${renderedBeets}]) as ${BEET_EXPORT_NAME}.${beetType}<${typeName}, ${typeName}>
+`
+  }
   return `
 const variants: beet.DataEnumBeet<${enumRecordName}>[] = [];
 ${renderBeetExport(

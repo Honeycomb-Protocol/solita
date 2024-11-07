@@ -24,6 +24,7 @@ export type SolitaConfigBase = {
   serializers?: Serializers
   removeExistingIdl?: boolean
   binaryArgs?: string
+  skipIdlBuildIfExists?: boolean
 }
 
 export type CustomTypeMapper = (
