@@ -1,6 +1,6 @@
 {
   "name": "@honeycomb-protocol/solita",
-  "version": "0.0.4-beta.5",
+  "version": "0.0.4-beta.6",
   "description": "Generates SDK API from solana contract IDL.",
   "main": "dist/src/solita.js",
   "types": "dist/src/solita.d.ts",
