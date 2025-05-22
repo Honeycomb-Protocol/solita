@@ -72,11 +72,13 @@ class InstructionRenderer {
   // Instruction Args Type
   // -----------------
   private renderIxArgField = (arg: IdlInstructionArg) => {
+    console.dir(arg)
     const typescriptType = this.typeMapper.map(arg.type, arg.name)
     return `${arg.name}: ${typescriptType}`
   }
 
   private renderIxArgsType() {
+    console.dir(this.ix, { depth: null })
     if (this.ix.args.length === 0) return ''
     const fields = this.ix.args
       .map((field) => this.renderIxArgField(field))
@@ -125,7 +127,7 @@ ${typeMapperImports.join('\n')}`.trim()
           // Make collection items easy to identify and avoid name clashes
           ac.name = deriveCollectionAccountsName(ac.name, acc.name)
           const knownPubkey = resolveKnownPubkey(ac.name)
-          const optional = ac.optional ?? ac.isOptional ?? false
+          const optional = ac.optional ?? false
           if (knownPubkey == null) {
             processedAccountsKey.push({ ...ac, optional })
           } else {
@@ -134,7 +136,7 @@ ${typeMapperImports.join('\n')}`.trim()
         }
       } else {
         const knownPubkey = resolveKnownPubkey(acc.name)
-        const optional = acc.optional ?? acc.isOptional ?? false
+        const optional = acc.optional ?? false
         if (knownPubkey == null) {
           processedAccountsKey.push({ ...acc, optional })
         } else {
@@ -243,8 +245,8 @@ ${typeMapperImports.join('\n')}`.trim()
         const pubkey = `accounts.${processedKey.name}`
         const accountMeta = renderAccountMeta(
           pubkey,
-          processedKey.isMut.toString(),
-          processedKey.isSigner.toString()
+          (processedKey.writable ?? false).toString(),
+          (processedKey.signer ?? false).toString()
         )
 
         // renderRequiredAccountMeta
@@ -311,8 +313,8 @@ if (accounts.${processedKey.name} != null) {
       .filter((x) => !isKnownPubkey(x.name))
       .map((x) => {
         const attrs = []
-        if (x.isMut) attrs.push('_writable_')
-        if (x.isSigner) attrs.push('**signer**')
+        if (x.writable) attrs.push('_writable_')
+        if (x.signer) attrs.push('**signer**')
 
         const optional = x.optional ? ' (optional) ' : ' '
         const desc = isIdlInstructionAccountWithDesc(x) ? x.desc : ''
@@ -515,18 +517,18 @@ function deriveCollectionAccountsName(
 function renderOptionalAccountMetaDefaultingToProgramId(
   processedKey: ProcessedAccountKey
 ): string {
-  const { name, isMut, isSigner } = processedKey
+  const { name, writable, signer } = processedKey
   const pubkey = `accounts.${name} ?? programId`
-  const mut = isMut ? `accounts.${name} != null` : 'false'
-  const signer = isSigner ? `accounts.${name} != null` : 'false'
-  return renderAccountMeta(pubkey, mut, signer)
+  const mut = writable ? `accounts.${name} != null` : 'false'
+  const sign = signer ? `accounts.${name} != null` : 'false'
+  return renderAccountMeta(pubkey, mut, sign)
 }
 
 function renderRequiredAccountMeta(
   processedKey: ProcessedAccountKey,
   programIdPubkey: string
 ): string {
-  const { name, isMut, isSigner, knownPubkey } = processedKey
+  const { name, writable, signer, knownPubkey } = processedKey
   const pubkey =
     knownPubkey == null
       ? `accounts.${name}`
@@ -534,7 +536,11 @@ function renderRequiredAccountMeta(
           knownPubkey,
           programIdPubkey
         )}`
-  return renderAccountMeta(pubkey, isMut.toString(), isSigner.toString())
+  return renderAccountMeta(
+    pubkey,
+    (writable ?? false).toString(),
+    (signer ?? false).toString()
+  )
 }
 
 function optionalAccountsStrategyDocComment(

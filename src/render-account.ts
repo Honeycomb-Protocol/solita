@@ -140,12 +140,12 @@ class AccountRenderer {
         }
 
         if (isIdlTypeDefined(f.type)) {
-          const resolved = this.resolveFieldType(f.type.defined)
+          const resolved = this.resolveFieldType(f.type.defined.name)
 
           if (resolved != null && isIdlTypeScalarEnum(resolved)) {
             const tsType = this.typeMapper.map(f.type, f.name)
             const variant = `${tsType}[this.${f.name}`
-            return `${f.name}: '${f.type.defined}.' + ${variant}]`
+            return `${f.name}: '${f.type.defined.name}.' + ${variant}]`
           }
           if (resolved != null && isIdlTypeDataEnum(resolved)) {
             // TODO(thlorenz): Improve rendering of data enums to include other fields

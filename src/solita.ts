@@ -18,7 +18,6 @@ import {
   isAnchorIdl,
   isIdlFieldsType,
   isIdlTypeDefined,
-  isIdlTypeDefinedWithTypeArgs,
   isIdlTypeEnum,
   isIdlTypeGeneric,
   isShankIdl,
@@ -155,13 +154,7 @@ export class Solita {
     const externalPackages = this.externalPackagesByType()
 
     function forceFixable(ty: IdlType) {
-      if (isIdlTypeDefined(ty) && fixableTypes.has(ty.defined)) {
-        return true
-      }
-      if (
-        isIdlTypeDefinedWithTypeArgs(ty) &&
-        fixableTypes.has(ty.definedWithTypeArgs.name)
-      ) {
+      if (isIdlTypeDefined(ty) && fixableTypes.has(ty.defined.name)) {
         return true
       }
       if (isIdlTypeGeneric(ty)) {

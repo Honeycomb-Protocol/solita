@@ -1,9 +1,9 @@
 import camelcase from 'camelcase'
-import { genericsToTokens } from './utils'
 import { TypeMapper } from './type-mapper'
 import {
   BEET_EXPORT_NAME,
   IdlDataEnumVariant,
+  IdlDefinedTypeGenericDefinition,
   IdlType,
   IdlTypeDataEnum,
   IdlTypeTuple,
@@ -11,6 +11,7 @@ import {
   isDataEnumVariantWithNamedFields,
   isIdlFieldType,
 } from './types'
+import { genericsToTokens } from './utils'
 
 /**
  * Renders union type and related methods for Rust data enum.
@@ -20,7 +21,7 @@ export function renderTypeDataEnumBeet(args: {
   dataEnum: IdlTypeDataEnum
   beetVarName: string
   typeName: string
-  generics?: string[]
+  generics?: IdlDefinedTypeGenericDefinition[]
 }) {
   const { typeMapper, dataEnum, beetVarName, generics = [] } = args
   const {
@@ -118,7 +119,7 @@ export function renderDataEnumRecord(
   typeMapper: TypeMapper,
   typeName: string,
   variants: IdlDataEnumVariant[],
-  generics: string[] = []
+  generics: IdlDefinedTypeGenericDefinition[] = []
 ) {
   const { typeNameWithGenerics, enumRecordName, genericsDefaults } =
     genericsToTokens(typeName, generics)

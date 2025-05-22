@@ -26,7 +26,6 @@ import {
   IdlTypeBTreeMap,
   IdlTypeBTreeSet,
   IdlTypeDefined,
-  IdlTypeDefinedWithTypeArgs,
   IdlTypeEnum,
   IdlTypeHashMap,
   IdlTypeHashSet,
@@ -37,9 +36,8 @@ import {
   isIdlTypeBTreeMap,
   isIdlTypeBTreeSet,
   isIdlTypeDefined,
-  isIdlTypeGeneric,
-  isIdlTypeDefinedWithTypeArgs,
   isIdlTypeEnum,
+  isIdlTypeGeneric,
   isIdlTypeHashMap,
   isIdlTypeHashSet,
   isIdlTypeOption,
@@ -82,7 +80,7 @@ export class TypeMapper {
     private readonly typeAliases: Map<string, PrimitiveTypeKey> = new Map(),
     private readonly forceFixable: ForceFixable = FORCE_FIXABLE_NEVER,
     private readonly primaryTypeMap: PrimaryTypeMap = TypeMapper.defaultPrimaryTypeMap
-  ) { }
+  ) {}
 
   clearUsages() {
     this.serdePackagesUsed.clear()
@@ -223,20 +221,18 @@ export class TypeMapper {
     const innerType = this.map(inner, name)
     return `Set<${innerType}>`
   }
-
-  private mapDefinedTypeWithTypeArgs(ty: IdlTypeDefinedWithTypeArgs) {
-    const fullFileDir = this.definedTypesImport(ty.definedWithTypeArgs.name)
-    const imports = getOrCreate(this.localImportsByPath, fullFileDir, new Set())
-    imports.add(ty.definedWithTypeArgs.name)
-    return `${ty.definedWithTypeArgs.name}<${ty.definedWithTypeArgs.args
-      .map((t) => this.map(t.type))
-      .join(', ')}>`
-  }
   private mapDefinedType(ty: IdlTypeDefined) {
-    const fullFileDir = this.definedTypesImport(ty.defined)
+    const fullFileDir = this.definedTypesImport(ty.defined.name)
     const imports = getOrCreate(this.localImportsByPath, fullFileDir, new Set())
-    imports.add(ty.defined)
-    return ty.defined
+    imports.add(ty.defined.name)
+
+    if (ty.defined.generics?.length) {
+      return `${ty.defined.name}<${ty.defined.generics
+        .map((t) => this.map(t.type, ty.defined.name))
+        .join(', ')}>`
+    }
+
+    return ty.defined.name
   }
 
   private mapEnumType(ty: IdlTypeEnum, name: string) {
@@ -271,13 +267,10 @@ export class TypeMapper {
       return ty.generic
     }
     if (isIdlTypeDefined(ty)) {
-      const alias = this.typeAliases.get(ty.defined)
+      const alias = this.typeAliases.get(ty.defined.name)
       return alias == null
         ? this.mapDefinedType(ty)
         : this.mapPrimitiveType(alias, name)
-    }
-    if (isIdlTypeDefinedWithTypeArgs(ty)) {
-      return this.mapDefinedTypeWithTypeArgs(ty)
     }
     if (isIdlTypeEnum(ty)) {
       return this.mapEnumType(ty, name)
@@ -300,8 +293,6 @@ export class TypeMapper {
     if (isIdlTypeBTreeSet(ty)) {
       return this.mapBTreeSetType(ty, name)
     }
-
-    console.log(ty)
 
     throw new Error(`Type ${ty} required for ${name} is not yet supported`)
   }
@@ -375,22 +366,20 @@ export class TypeMapper {
 
   private mapDefinedSerde(ty: IdlTypeDefined) {
     this.usedFixableSerde = true
-    const fullFileDir = this.definedTypesImport(ty.defined)
+    const fullFileDir = this.definedTypesImport(ty.defined.name)
     const imports = getOrCreate(this.localImportsByPath, fullFileDir, new Set())
-    const varName = beetVarNameFromTypeName(ty.defined)
+    const varName = beetVarNameFromTypeName(ty.defined.name)
+
+    if (ty.defined.generics?.length) {
+      const factoryName = `${varName}Factory`
+      const args = ty.defined.generics.map((a) => this.mapSerde(a.type))
+      const argsTypes = ty.defined.generics.map((a) => this.map(a.type))
+      imports.add(factoryName)
+      return `${factoryName}<${argsTypes.join(', ')}>(${args.join(', ')})`
+    }
+
     imports.add(varName)
     return varName
-  }
-  private mapDefinedWithTypeArgsSerde(ty: IdlTypeDefinedWithTypeArgs) {
-    this.usedFixableSerde = true
-    const fullFileDir = this.definedTypesImport(ty.definedWithTypeArgs.name)
-    const imports = getOrCreate(this.localImportsByPath, fullFileDir, new Set())
-    const varName = beetVarNameFromTypeName(ty.definedWithTypeArgs.name)
-    const factoryName = `${varName}Factory`
-    const args = ty.definedWithTypeArgs.args.map((a) => this.mapSerde(a.type))
-    const argsTypes = ty.definedWithTypeArgs.args.map((a) => this.map(a.type))
-    imports.add(factoryName)
-    return `${factoryName}<${argsTypes.join(', ')}>(${args.join(', ')})`
   }
 
   private mapEnumSerde(ty: IdlTypeEnum, name: string) {
@@ -503,14 +492,10 @@ export class TypeMapper {
     }
 
     if (isIdlTypeDefined(ty)) {
-      const alias = this.typeAliases.get(ty.defined)
+      const alias = this.typeAliases.get(ty.defined.name)
       return alias == null
         ? this.mapDefinedSerde(ty)
         : this.mapPrimitiveSerde(alias, name)
-    }
-
-    if (isIdlTypeDefinedWithTypeArgs(ty)) {
-      return this.mapDefinedWithTypeArgsSerde(ty)
     }
 
     if (isIdlTypeTuple(ty)) {
@@ -565,9 +550,9 @@ export class TypeMapper {
       forcePackages == null
         ? this.serdePackagesUsed
         : new Set([
-          ...Array.from(this.serdePackagesUsed),
-          ...Array.from(forcePackages),
-        ])
+            ...Array.from(this.serdePackagesUsed),
+            ...Array.from(forcePackages),
+          ])
     const imports = []
     for (const pack of packagesToInclude) {
       const exp = serdePackageExportName(pack)

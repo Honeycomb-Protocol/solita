@@ -3,9 +3,11 @@ import { CustomTypeMapper, SolitaConfig } from './cli/types'
 import {
   Idl,
   IdlAccount,
+  IdlAccountType,
   IdlDefinedTypeDefinition,
   IdlType,
   IdlTypeBTreeMap,
+  IdlTypeDefined,
   IdlTypeHashMap,
   IdlTypeOption,
   IdlTypeVec,
@@ -193,20 +195,36 @@ export function adaptIdl(idl: Idl, config: SolitaConfig) {
 
   if (isShankIdl(idl)) return idl
 
-  if (idl.accounts != null) {
-    for (let i = 0; i < idl.accounts.length; i++) {
-      idl.accounts[i] = transformDefinition(idl.accounts[i]) as IdlAccount
-    }
-  }
+  const typeCache = new Map<string, IdlDefinedTypeDefinition>()
 
   if (idl.types != null) {
     for (let i = 0; i < idl.types.length; i++) {
-      idl.types[i] = transformDefinition(idl.types[i])
+      typeCache.set(idl.types[i].name, transformDefinition(idl.types[i]))
     }
   }
 
+  if (idl.accounts != null) {
+    for (let i = 0; i < idl.accounts.length; i++) {
+      const accountType = typeCache.get(idl.accounts[i].name)
+      typeCache.delete(idl.accounts[i].name)
+      const account: IdlAccount = {
+        name: idl.accounts[i].name,
+        discriminator: idl.accounts[i].discriminator,
+        type: accountType!.type as IdlAccountType,
+      }
+      idl.accounts[i] = account
+    }
+  }
+
+  idl.types = Array.from(typeCache.values())
+
   for (let ix of idl.instructions) {
+    ix.name = snakeToCamel(ix.name)
+    for (let account of ix.accounts) {
+      account.name = snakeToCamel(account.name)
+    }
     for (let i = 0; i < ix.args.length; i++) {
+      ix.args[i].name = snakeToCamel(ix.args[i].name)
       ix.args[i].type = transformType(ix.args[i].type)
     }
   }
@@ -236,12 +254,14 @@ function transformDefinition(def: IdlDefinedTypeDefinition) {
   const ty = def.type
   if (isFieldsType(ty)) {
     for (const f of ty.fields) {
+      f.name = snakeToCamel(f.name)
       f.type = transformType(f.type)
     }
   } else if (isIdlTypeDataEnum(ty)) {
     for (const v of ty.variants) {
       if (isDataEnumVariantWithNamedFields(v)) {
         for (const f of v.fields) {
+          f.name = snakeToCamel(f.name)
           f.type = transformType(f.type)
         }
       } else if (isDataEnumVariantWithUnnamedFields(v)) {
@@ -253,6 +273,13 @@ function transformDefinition(def: IdlDefinedTypeDefinition) {
   }
   return def
 }
+
+const snakeToCamel = (str: string) =>
+  str
+    .toLowerCase()
+    .replace(/([-_][a-z0-9])/g, (group) =>
+      group.toUpperCase().replace('-', '').replace('_', '')
+    )
 
 function transformType(ty: IdlType) {
   if (isIdlTypeOption(ty)) {
@@ -270,16 +297,23 @@ function transformType(ty: IdlType) {
   }
 
   if (isIdlTypeDefined(ty)) {
-    return resolveType(ty.defined)
+    const resolvedType = resolveType(ty.defined.name)
+
+    if (isIdlTypeDefined(resolvedType) && ty.defined.generics?.length) {
+      const mapped: IdlTypeDefined = {
+        defined: {
+          ...(resolvedType as IdlTypeDefined).defined,
+          generics: ty.defined.generics?.map((t) => ({
+            kind: 'type',
+            type: transformType(t.type),
+          })),
+        },
+      }
+      return mapped
+    }
+
+    return resolvedType
   }
-  // if (
-  //   isIdlTypeDefinedWithTypeArgs(ty) &&
-  //   ['VecMap', 'HashMap', 'BTreeMap', 'Map'].includes(
-  //     ty.definedWithTypeArgs.name
-  //   )
-  // ) {
-  //   return resolveType(ty.definedWithTypeArgs.name)
-  // }
   if (typeof ty === 'string') {
     let k = ty.toLocaleLowerCase()
     if (k in premitiveTypes) {
@@ -303,7 +337,7 @@ const resolveType = (strType: string): IdlType => {
     if (type) return type
   }
 
-  return idlTypeFallback(strType, resolveType) || { defined: strType }
+  return idlTypeFallback(strType, resolveType) || { defined: { name: strType } }
 }
 
 // -----------------

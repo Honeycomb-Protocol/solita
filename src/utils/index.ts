@@ -1,11 +1,11 @@
-import { PathLike, promises as fs, accessSync } from 'fs'
-import path from 'path'
-import { sha256 } from 'js-sha256'
 import camelcase from 'camelcase'
-import { snakeCase } from 'snake-case'
-import { IdlTypeArray } from '../types'
-import { TypeMapper } from '../type-mapper'
 import { R_OK, W_OK } from 'constants'
+import { PathLike, accessSync, promises as fs } from 'fs'
+import { sha256 } from 'js-sha256'
+import path from 'path'
+import { snakeCase } from 'snake-case'
+import { TypeMapper } from '../type-mapper'
+import { IdlDefinedTypeGenericDefinition, IdlTypeArray } from '../types'
 
 export * from './logs'
 
@@ -166,10 +166,15 @@ export function getOrCreate<K, V>(map: Map<K, V>, key: K, initial: V): V {
   return initial
 }
 
-export function genericsToTokens(typeName: string, _generics: string[]) {
-  const generics = _generics.length ? `<${_generics.join(', ')}>` : ''
+export function genericsToTokens(
+  typeName: string,
+  _generics: IdlDefinedTypeGenericDefinition[]
+) {
+  const generics = _generics.length
+    ? `<${_generics.map((g) => g.name).join(', ')}>`
+    : ''
   const genericsDefaults = _generics.length
-    ? `<${_generics.map((a) => `${a} = any`).join(', ')}>`
+    ? `<${_generics.map((a) => `${a.name} = any`).join(', ')}>`
     : ''
   const enumRecordName = `${typeName}Record${generics}`
   const typeNameWithGenerics = `${typeName}${generics}`
@@ -182,7 +187,12 @@ export function genericsToTokens(typeName: string, _generics: string[]) {
       'export const ' +
       (generics.length
         ? `${beetVarName}Factory = ${generics}(
-  ${_generics.map((a) => `${a}: beet.FixableBeet<${a}> | beet.FixedSizeBeet<${a}>`).join(',\n  ')}
+  ${_generics
+    .map(
+      (a) =>
+        `${a.name}: beet.FixableBeet<${a.name}> | beet.FixedSizeBeet<${a.name}>`
+    )
+    .join(',\n  ')}
 ) =>`
         : `${beetVarName} = `),
   }

@@ -39,11 +39,10 @@ export const IDL_FIELD_ATTR_PADDING = 'padding'
 
 export type IdlInstructionAccount = {
   name: string
-  isMut: boolean
-  isSigner: boolean
-  desc?: string
+  writable?: boolean
+  signer?: boolean
+  docs?: string[]
   optional?: boolean
-  isOptional?: boolean
 }
 
 export type IdlType =
@@ -51,7 +50,7 @@ export type IdlType =
   | 'publicKey'
   | IdlTypeGeneric
   | IdlTypeDefined
-  | IdlTypeDefinedWithTypeArgs
+  // | IdlTypeDefinedWithTypeArgs
   | IdlTypeOption
   | IdlTypeVec
   | IdlTypeArray
@@ -62,17 +61,23 @@ export type IdlType =
   | IdlTypeSet
 
 // User defined type.
-export type IdlTypeDefinedWithTypeArgs = {
-  definedWithTypeArgs: {
-    name: 'DataOrHash'
-    args: {
+// export type IdlTypeDefinedWithTypeArgs = {
+//   definedWithTypeArgs: {
+//     name: string
+//     args: {
+//       type: IdlType
+//     }[]
+//   }
+// }
+
+export type IdlTypeDefined = {
+  defined: {
+    name: string
+    generics?: {
+      kind: 'type'
       type: IdlType
     }[]
   }
-}
-
-export type IdlTypeDefined = {
-  defined: string
 }
 
 export type IdlTypeGeneric = {
@@ -163,9 +168,10 @@ export type IdlFieldsType = {
 
 export type IdlDefinedTypeDefinition = {
   name: string
-  generics?: string[]
+  generics?: IdlDefinedTypeGenericDefinition[]
   type: IdlFieldsType | IdlTypeEnum | IdlTypeDataEnum
 }
+export type IdlDefinedTypeGenericDefinition = { kind: 'type'; name: string }
 
 // Mapped => typeName: package
 export type IdlExternallyDefinedTypes = Record<string, string>
@@ -195,6 +201,7 @@ export type IdlAccountType = {
 }
 
 export type IdlAccount = {
+  discriminator?: number[]
   name: string
   type: IdlAccountType
 }
@@ -297,11 +304,11 @@ export function isIdlTypeDefined(ty: IdlType): ty is IdlTypeDefined {
   return (ty as IdlTypeDefined).defined != null
 }
 
-export function isIdlTypeDefinedWithTypeArgs(
-  ty: IdlType
-): ty is IdlTypeDefinedWithTypeArgs {
-  return (ty as IdlTypeDefinedWithTypeArgs).definedWithTypeArgs != null
-}
+// export function isIdlTypeDefinedWithTypeArgs(
+//   ty: IdlType
+// ): ty is IdlTypeDefinedWithTypeArgs {
+//   return (ty as IdlTypeDefinedWithTypeArgs).definedWithTypeArgs != null
+// }
 
 export function isIdlTypeEnum(
   ty: IdlType | IdlFieldsType | IdlTypeEnum

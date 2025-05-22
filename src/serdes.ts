@@ -4,6 +4,7 @@ import {
   BEET_PACKAGE,
   BEET_SOLANA_EXPORT_NAME,
   BEET_SOLANA_PACKAGE,
+  IdlDefinedTypeGenericDefinition,
   SOLANA_WEB3_EXPORT_NAME,
   SOLANA_WEB3_PACKAGE,
   TypeMappedSerdeField,
@@ -180,7 +181,7 @@ export function renderDataStruct({
  */
 export function renderTypeDataStruct(args: {
   fields: TypeMappedSerdeField[]
-  generics?: string[]
+  generics?: IdlDefinedTypeGenericDefinition[]
   beetVarName: string
   typeName: string
   isFixable: boolean
