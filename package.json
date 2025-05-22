@@ -1,11 +1,11 @@
 {
   "name": "@honeycomb-protocol/solita",
-  "version": "0.0.4-beta.8",
+  "version": "0.0.4-beta.10",
   "description": "Generates SDK API from solana contract IDL.",
-  "main": "dist/src/solita.js",
-  "types": "dist/src/solita.d.ts",
+  "main": "dist/solita.js",
+  "types": "dist/solita.d.ts",
   "bin": {
-    "solita": "dist/src/cli/solita.js"
+    "solita": "dist/cli/solita.js"
   },
   "scripts": {
     "check:publish-ready": "yarn build && if test \"$SKIP_TESTS\" = \"1\" ; then echo \"WARN: Skipping Tests\"; else yarn test; fi",
@@ -35,7 +35,7 @@
     "dist": "./dist/"
   },
   "files": [
-    "dist/src/*"
+    "dist/*"
   ],
   "keywords": [
     "solana",

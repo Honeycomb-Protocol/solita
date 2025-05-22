@@ -72,13 +72,11 @@ class InstructionRenderer {
   // Instruction Args Type
   // -----------------
   private renderIxArgField = (arg: IdlInstructionArg) => {
-    console.dir(arg)
     const typescriptType = this.typeMapper.map(arg.type, arg.name)
     return `${arg.name}: ${typescriptType}`
   }
 
   private renderIxArgsType() {
-    console.dir(this.ix, { depth: null })
     if (this.ix.args.length === 0) return ''
     const fields = this.ix.args
       .map((field) => this.renderIxArgField(field))
